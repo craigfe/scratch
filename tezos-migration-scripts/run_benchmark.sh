@@ -65,4 +65,4 @@ rm -f ./yes-wallet/blocks
 	bake for foundation1 2>&1 | \
 	ts "[client]"
 
-while kill -0 $node_pid; do sleep 1; done
+kill "$node_pid" && { while kill -0 "$node_pid"; do sleep 1; done; }
