@@ -54,9 +54,14 @@ echo "- Starting the 'tezos-node' process { rpc_port = $rpc_port; net_port = $ne
 	--connections 0 \
 	--synchronisation-threshold 0 2>&1 | \
 	ts "  [node]" &
-node_pid=$!
 
 sleep 5 # Give the node some time to start
+
+# We want to kill `tezos-node` without killing the `time` parent process, so
+# that we still get the data. We're getting the PID of `tezos-node` by looking
+# up the port it's using.
+node_pid="$(sudo ss -lp "sport = :$net_port" | grep -oP "pid=\K[0-9]*" | head -n 1)"
+
 rm -f ./yes-wallet/blocks
 
 /usr/bin/time $time_output -v "_build/default/$TEZOS_CLIENT" \
@@ -65,4 +70,4 @@ rm -f ./yes-wallet/blocks
 	bake for foundation1 2>&1 | \
 	ts "[client]"
 
-kill "$node_pid" && { while kill -0 "$node_pid"; do sleep 1; done; }
+kill "$node_pid" && { while kill -0 "$node_pid" 2>/dev/null; do sleep 1; done; }
