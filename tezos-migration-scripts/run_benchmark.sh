@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Needs `moreutils` (for `ts`)
 
 STORE_PRISTINE="/bench/craig/data/pristine/.tezos-node/"
 STORE_DIRTY="/bench/craig/data/.tezos-node/"
@@ -35,7 +36,9 @@ RPC_PORT=$(random_unused_port)
 NET_PORT=$(random_unused_port)
 
 echo "- Starting the 'tezos-node' process { rpc_port = $RPC_PORT; net_port = $NET_PORT }"
-"_build/default/$TEZOS_NODE" run \
+
+if [ -n "$TIME_DATA" ]; then time_output="--output=$TIME_DATA.node.data"; else time_output=""; fi
+/usr/bin/time $time_output -v "_build/default/$TEZOS_NODE" run \
 	--data-dir "$STORE_DIRTY" \
 	--private-mode \
 	--no-bootstrap-peers \
@@ -49,8 +52,7 @@ node_pid=$!
 sleep 5 # Give the node some time to start
 rm -f ./yes-wallet/blocks
 
-if [ -n "$TIME_DATA" ]; then time_output="--output=$TIME_DATA"; else time_output=""; fi
-
+if [ -n "$TIME_DATA" ]; then time_output="--output=$TIME_DATA.client.data"; else time_output=""; fi
 /usr/bin/time $time_output -v "_build/default/$TEZOS_CLIENT" \
 	--base-dir ./yes-wallet \
 	--endpoint http://localhost:$RPC_PORT \
