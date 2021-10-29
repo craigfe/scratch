@@ -5,7 +5,7 @@ id=$(hexdump -n 4 -e '"%08x"' /dev/urandom)
 log_dir="./logs/$id"
 
 # Variables of our matrix:
-allocation_policies="0 2"
+allocation_strategies="0 2"
 branches="auto-flush auto-flush-minus-unshallow auto-flush-minus-explicit-gc"
 iterations=5
 
@@ -14,7 +14,7 @@ mkdir -p "$log_dir"
 echo "Starting the bench matrix { id = $id; log_dir = $log_dir }"
 
 for i in $(seq 1 $iterations); do
-  for a in $allocation_policies; do
+  for a in $allocation_strategies; do
     for branch in $branches; do
       git checkout --quiet $branch
 

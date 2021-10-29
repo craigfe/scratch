@@ -32,18 +32,25 @@ random_unused_port () {
 	comm -23 <(seq 49152 65535) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1 || true
 }
 
-RPC_PORT=$(random_unused_port)
-NET_PORT=$(random_unused_port)
+rpc_port=$(random_unused_port)
+net_port=$(random_unused_port)
 
-echo "- Starting the 'tezos-node' process { rpc_port = $RPC_PORT; net_port = $NET_PORT }"
+if [ -n "$TIME_DATA" ]; then
+	time_output_node="--output=$TIME_DATA.node.data"
+	time_output_client="--output=$TIME_DATA.client.data"
+else
+	time_output_node=""
+	time_output_client=""
+fi
 
-if [ -n "$TIME_DATA" ]; then time_output="--output=$TIME_DATA.node.data"; else time_output=""; fi
-/usr/bin/time $time_output -v "_build/default/$TEZOS_NODE" run \
+echo "- Starting the 'tezos-node' process { rpc_port = $rpc_port; net_port = $net_port }"
+
+/usr/bin/time $time_output_node -v "_build/default/$TEZOS_NODE" run \
 	--data-dir "$STORE_DIRTY" \
 	--private-mode \
 	--no-bootstrap-peers \
-	--net-addr localhost:$NET_PORT \
-	--rpc-addr localhost:$RPC_PORT \
+	--net-addr localhost:$net_port \
+	--rpc-addr localhost:$rpc_port \
 	--connections 0 \
 	--synchronisation-threshold 0 2>&1 | \
 	ts "  [node]" &
@@ -52,13 +59,10 @@ node_pid=$!
 sleep 5 # Give the node some time to start
 rm -f ./yes-wallet/blocks
 
-if [ -n "$TIME_DATA" ]; then time_output="--output=$TIME_DATA.client.data"; else time_output=""; fi
 /usr/bin/time $time_output -v "_build/default/$TEZOS_CLIENT" \
 	--base-dir ./yes-wallet \
-	--endpoint http://localhost:$RPC_PORT \
+	--endpoint http://localhost:$rpc_port \
 	bake for foundation1 2>&1 | \
 	ts "[client]"
 
-kill -TERM $node_pid
-
-
+while kill -0 $node_pid; do sleep 1; done
